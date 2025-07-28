@@ -1,0 +1,51 @@
+package com.example.passwordmanager
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.passwordmanager.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var db: PasswordDatabase
+    private lateinit var adapter: PasswordAdapter
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        db = PasswordDatabase.getDatabase(this)
+
+        adapter = PasswordAdapter()
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.adapter = adapter
+
+        loadPasswords()
+
+        binding.saveButton.setOnClickListener {
+            val site = binding.siteInput.text.toString()
+            val password = binding.passwordInput.text.toString()
+
+            if (site.isNotEmpty() && password.isNotEmpty()) {
+                lifecycleScope.launch {
+                    db.passwordDao().insertPassword(Password(site, password))
+                    loadPasswords()
+                }
+            } else {
+                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun loadPasswords() {
+        lifecycleScope.launch {
+            val data = db.passwordDao().getAllPasswords()
+            adapter.setData(data)
+        }
+    }
+}
